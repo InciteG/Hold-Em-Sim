@@ -1,2 +1,3 @@
-# Hold-Em-Sim
-Hold'em Simulator
+# Poker Game Simulator
+
+
