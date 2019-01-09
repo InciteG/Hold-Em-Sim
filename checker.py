@@ -107,11 +107,12 @@ def blindconvert(blinds):
 def checkhandstrength(full):
     output = 0
     bestorder = []
+    bestseq = []
     a = checkstf(full) #10, or #7, straight flush or straight
     if a[0] == 10:
         output = a[0]
         bestorder = a[1]
-
+        bestseq = a[1]
     elif a[0] == 0:
         b = checkdup(full)  #9 quad, #8 fullhouse, #5 trips, #4 two pair, #3 pair, 
         if b[0] >= 0 and b[0] < 6:
@@ -122,25 +123,31 @@ def checkhandstrength(full):
                     d = checkhigh(full) 
                     output = d[0]
                     bestorder = d[1]
+                    bestseq = d[2]
                 else:
                     output = b[0]
                     bestorder = b[1]
+                    bestseq = b[2]
             elif c[0] == 6:
                 output = c[0]
                 bestorder = c[1]
+                bestseq = c[2]
         elif b[0] > 7:
             output = b[0]
             bestorder = b[1]
+            bestseq = b[2]
     
     elif a[0] == 7:
         b = checkdup(full)  #9 quad, #8 fullhouse, #5 trips, #4 two pair, #3 pair, 
         if b[0] > 7:
             output = b[0]
             bestorder = b[1]
+            bestseq = b[2]
         elif b[0] < 7:
             output = a[0]
             bestorder = a[1]
-    return output, bestorder
+            bestseq = a[2]
+    return output, bestorder, bestseq
 
 def checkhigh(fullhand):
     combine = []
@@ -173,7 +180,7 @@ def checkhigh(fullhand):
     for item in bestseq:
         bestorder.append(c.psreverse(item[0], item[1]))
     
-    return output, bestorder
+    return output, bestorder, bestseq
 
 """ Checks hand+community for any duplicates and classifies hand strength based on duplicates found. Quads = handstrength of 9, fullhouse =8, etc. 
 Outputs strongest sequence in card# format and in power,suit format
@@ -322,7 +329,7 @@ def checkdup(fullhand):
     for item in besthand:
         bestorder.append(c.psreverse(item[0], item[1]))
 
-    return output, bestorder
+    return output, bestorder, besthand
 
 def checkflush(fullhand):
     output = 0
@@ -413,7 +420,7 @@ def checkstraight(fullhand):
 
     for item in besthand:
         bestorder.append(c.psreverse(item[0], item[1]))    
-    return output, bestorder
+    return output, bestorder, besthand
 
 def checkstf(fullhand):
     output = 0
@@ -464,13 +471,11 @@ def checkstf(fullhand):
     
     for item in besthand:
         bestorder.append(c.psreverse(item[0], item[1]))
-    return output, bestorder
+    return output, bestorder, besthand
 
 def checkwin(hands, screenname, community):
     comparelist = []
     highesthands = []
-    winner = []
-    winninghandlist = []
     for hand,name in zip(hands,screenname):
         full = hand+community
         strength = checkhandstrength(full)
@@ -486,40 +491,179 @@ def checkwin(hands, screenname, community):
             highesthands.append(player)
             
     if len(highesthands) == 1:
-        winner = highesthands[0]['Screenname']
-        winninghand = highesthands[0]['Card Numbers']
+        win= highesthands[0]
     elif len(highesthands) > 1:
         win = deepcompare(highesthands)
-        winner = win[0]
-        winninghand = win[1]
-
-    
-    return winner, winninghand
-
-def deepcompare(highesthands):
-    compareinput = highesthands[0]['Hand Strength']
-    if compareinput == 10:
-        win = comparestf(highesthands)
-    elif compareinput ==9:
-        win = comparestf(highesthands)
-    elif compareinput ==8:
-        win = comparestf(highesthands)
-    elif compareinput ==7:
-        win = comparestf(highesthands)
-    elif compareinput ==6:
-        win = comparestf(highesthands)
-    elif compareinput ==5:
-        win = comparestf(highesthands)
-    elif compareinput ==4:
-        win = comparestf(highesthands)
-    elif compareinput ==3:
-        win = comparestf(highesthands)
-    elif compareinput ==2:
-        win = chigh(highesthands)
     
     return win
 
-def chigh(highesethands):
+def deepcompare(highesthands):
+    compareinput = highesthands[0]['Hand Strength']
+    if compareinput == 10 or compareinput== 2 or compareinput== 6 or compareinput== 7:
+        win = chigh(highesthands)
+    elif compareinput ==9 or compareinput == 8:
+        win = cquadorfh(highesthands)
+    elif compareinput ==5 or compareinput ==4:
+        win = ctriptwo(highesthands)
+    elif compareinput ==3:
+        win = cpair(highesthands)
+    
+    return win
+
+def chigh(highesthands):
+    comparelist = []
+    winners = []
+    for item in highesthands:
+        hold = []
+        hold.append(item['Screenname'])
+        hold.append(sorted(item['Readable Hand'], key = itemgetter(0), reverse = True))
+        comparelist.append(hold)
+
+    strongest = comparelist[0]
+    hold = [strongest]
+
+    for np, count in zip(comparelist[1:], range(0,len(comparelist[1:]))):
+        for cards, npcard, nc in zip(strongest[1], np[1], range(0,5)):
+            if cards[0] > npcard[0]:
+                break
+            elif cards[0] == npcard[0] and nc <4:
+                pass
+            elif cards[0] < npcard[0]:
+                strongest = [np]
+                hold = [strongest]
+                break
+            elif cards[0] == npcard[0] and nc ==4:
+                hold.append(np)
+                break
+    for item in hold:
+        for player in highesthands:
+            if item[0] == player['Screenname']:
+                winners.append(player)
+            else:
+                pass
+
+    return winners
+
+def cquadorfh(highesthands):
+    comparelist = []
+    winners = []
+    for item in highesthands:
+        hold = []
+        hold.append(item['Screenname'])
+        hold.append(item['Readable Hand'])
+        comparelist.append(hold)
+    strongest = comparelist[0]
+    hold = [strongest]
+    for np in comparelist[1:]:
+        if strongest[1][0][0] > np[1][0][0]:
+            pass
+        elif strongest[1][0][0] < np[1][0][0]:
+            strongest = np
+            hold = [strongest]
+        elif strongest[1][0][0] == np[1][0][0]:
+            if strongest[1][4][0] > np[1][4][0]:
+                pass
+            elif strongest[1][4][0] < np[1][4][0]:
+                strongest = np
+                hold = [strongest]
+            elif strongest[1][4][0] == np[1][4][0]:
+                hold.append(np)
+    for item in hold:
+        for player in highesthands:
+            if item[0] == player['Screenname']:
+                winners.append(player)
+            else:
+                pass
+
+    return winners
+
+def ctriptwo(highesthands):
+    comparelist = []
+    winners = []
+    for item in highesthands:
+        hold = []
+        hold.append(item['Screenname'])
+        hold.append(item['Readable Hand'])
+        comparelist.append(hold)
+    strongest = comparelist[0]
+    hold = [strongest]
+    for np in comparelist[1:]:
+        if strongest[1][0][0] > np[1][0][0]:
+            pass
+        elif strongest[1][0][0] < np[1][0][0]:
+            strongest = np
+            hold = [strongest]
+        elif strongest[1][0][0] == np[1][0][0]:
+            if strongest[1][3][0] > np[1][3][0]:
+                pass
+            elif strongest[1][3][0] < np[1][3][0]:
+                strongest = np
+                hold = [strongest]
+            elif strongest[1][3][0] == np[1][3][0]:
+                if strongest[1][4][0] > np[1][4][0]:
+                    pass
+                elif strongest[1][4][0] < np[1][4][0]:
+                    strongest = np
+                    hold = [strongest]
+                elif strongest[1][4][0] == np[1][4][0]:
+                    hold.append(np)
+                
+    for item in hold:
+        for player in highesthands:
+            if item[0] == player['Screenname']:
+                winners.append(player)
+            else:
+                pass
+
+    return winners
+
+def cpair(highesthands):
+    comparelist = []
+    winners = []
+    for item in highesthands:
+        hold = []
+        hold.append(item['Screenname'])
+        hold.append(item['Readable Hand'])
+        comparelist.append(hold)
+    strongest = comparelist[0]
+    hold = [strongest]
+    for np in comparelist[1:]:
+        if strongest[1][0][0] > np[1][0][0]:
+            pass
+        elif strongest[1][0][0] < np[1][0][0]:
+            strongest = np
+            hold = [strongest]
+        elif strongest[1][0][0] == np[1][0][0]:
+            if strongest[1][2][0] > np[1][2][0]:
+                pass
+            elif strongest[1][2][0] < np[1][2][0]:
+                strongest = np
+                hold = [strongest]
+            elif strongest[1][2][0] == np[1][2][0]:
+                if strongest[1][3][0] > np[1][3][0]:
+                    pass
+                elif strongest[1][3][0] < np[1][3][0]:
+                    strongest = np
+                    hold = [strongest]
+                elif strongest[1][4][0] == np[1][4][0]:
+                    if strongest[1][4][0] > np[1][4][0]:
+                        pass
+                    elif strongest[1][4][0] < np[1][4][0]:
+                        strongest = np
+                        hold = [strongest]
+                    elif strongest[1][4][0] == np[1][4][0]:
+                        hold.append(np)
+                
+    for item in hold:
+        for player in highesthands:
+            if item[0] == player['Screenname']:
+                winners.append(player)
+            else:
+                pass
+
+    return winners
+
+
     
 
 
@@ -528,10 +672,29 @@ def chigh(highesethands):
 
 
     
-hands = [[2, 1], [3,16] , [14, 23], [9,48]]
+hands = [[2, 43], [11,12] , [37, 25], [9,10]]
+read = []
+for item in hands:
+    hold = []
+    for card in item:
+        store = []
+        store.append(c.Card(card).power)
+        store.append(c.Card(card).suit)
+        hold.append(store)
+    read.append(hold)
+print(read)
 screenname = ['Sebastian', 'Qwerty123', 'Donavis', 'Richrich']
-community = [29, 43, 36, 22, 13]
-checkwin(hands, screenname, community)
+community = [3, 17, 24, 52, 5]
+comread = []
+for item in community:
+    store = []
+    store.append(c.Card(item).power)
+    store.append(c.Card(item).suit)
+    comread.append(store)
+print(comread)
+
+z = checkwin(hands, screenname, community)
+print(z)
 
 
     
