@@ -19,12 +19,14 @@ Purpose: Create a poker game simulator and emulate matchmaking environment provi
    - Checks if certain inputs are within desired input-conditions through checker.checkifoption 
    - Room PW Check:
       - obtains room password from database based on room name and assess whether correct password was input to join private room
+      
+   Winning Assessment:
+   - Given a list of hands(list of hands from players who make it to showdown), determines the winning hand(s) to divide pot between individual or multiple winners
     
     
 
 # In Progress Tasks:
 
-  winningassessment: - determine winning user in round based on strength of top 5 cards from community or hole cards
   Table class presented to user - table info retrieved from database and placed into class read by user, changes update database
   Table action - call, fold, raise affect stack value and table 
   Join room functionality: - choose available seat, buyin subtract from user bankroll
